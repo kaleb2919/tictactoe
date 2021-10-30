@@ -47,13 +47,14 @@ class Game final : public Console
     bool is_win = false;
     bool is_draw = false;
 
-    int win_rule = 5;
+    int win_sequence_count = 5;
     int field_size = 8;
     int game_type = 0;
 
-    Position menu_position = { 2, 1};
-    Position field_position = { 21, 1};
-    Position game_info_position = { 2, 1};
+    int menu_offset = 2;
+    int field_offset = 21;
+    int game_info_offset = 2;
+
     Position last_turn = { 0, 0};
 
     int menu_cursor_position = 0;
@@ -108,15 +109,16 @@ public:
     void breakGame();
     void quit();
 
-    void fieldRender();
-    void menuRender();
-    void gameInfoRender();
+    void renderField();
+    void renderMenu();
+    void renderGameInfo();
+
     void update();
 
-    int checkCrossLeft();
-    int checkCrossRight();
-    int checkHorizontal();
-    int checkVertical();
+    bool checkCrossLeft();
+    bool checkCrossRight();
+    bool checkHorizontal();
+    bool checkVertical();
     void checkGameState();
 
     static void init();

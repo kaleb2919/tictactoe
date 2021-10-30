@@ -120,7 +120,7 @@ void Game::moveFieldCursorUp()
 {
     if (is_game_started && (turn == PLAYER || turn == PLAYER_2))
     {
-        game_cursor_position.x = (field_size + (game_cursor_position.x - 1) % field_size) % field_size;
+        game_cursor_position.y = (field_size + (game_cursor_position.y - 1) % field_size) % field_size;
     }
 }
 
@@ -128,7 +128,7 @@ void Game::moveFieldCursorDown()
 {
     if (is_game_started && (turn == PLAYER || turn == PLAYER_2))
     {
-        game_cursor_position.x = (field_size + (game_cursor_position.x + 1) % field_size) % field_size;
+        game_cursor_position.y = (field_size + (game_cursor_position.y + 1) % field_size) % field_size;
     }
 }
 
@@ -136,7 +136,7 @@ void Game::moveFieldCursorLeft()
 {
     if (is_game_started && (turn == PLAYER || turn == PLAYER_2))
     {
-        game_cursor_position.y = (field_size + (game_cursor_position.y - 1) % field_size) % field_size;
+        game_cursor_position.x = (field_size + (game_cursor_position.x - 1) % field_size) % field_size;
     }
 }
 
@@ -144,7 +144,7 @@ void Game::moveFieldCursorRight()
 {
     if (is_game_started && (turn == PLAYER || turn == PLAYER_2))
     {
-        game_cursor_position.y = (field_size + (game_cursor_position.y + 1) % field_size) % field_size;
+        game_cursor_position.x = (field_size + (game_cursor_position.x + 1) % field_size) % field_size;
     }
 }
 
@@ -177,8 +177,8 @@ void Game::turnAI()
     if (is_game_started && (turn == AI || turn == AI_2))
     {
         int possible_turn = popPossibleTurn(rand() % possible_turns.size());
-        last_turn.x = (possible_turn - possible_turn % field_size) / field_size;
-        last_turn.y = possible_turn % field_size;
+        last_turn.x = possible_turn % field_size;
+        last_turn.y = (possible_turn - possible_turn % field_size) / field_size;
         field[possible_turn] = getCurrentTurnMarker();
         checkGameState();
         if (turn == AI)
@@ -226,7 +226,7 @@ void Game::changeGameTypeRight()
 void Game::changeFieldSizeLeft()
 {
     field_size = (std::max)(3, --field_size);
-    win_rule = (std::min)(win_rule, field_size);
+    win_sequence_count = (std::min)(win_sequence_count, field_size);
     initField();
 }
 
@@ -238,12 +238,12 @@ void Game::changeFieldSizeRight()
 
 void Game::changeWinRuleLeft()
 {
-    win_rule = (std::max)(3, --win_rule);
+    win_sequence_count = (std::max)(3, --win_sequence_count);
 }
 
 void Game::changeWinRuleRight()
 {
-    win_rule = (std::min)(++win_rule, field_size);
+    win_sequence_count = (std::min)(++win_sequence_count, field_size);
 }
 
 std::wstring Game::getGameTypeValue()
@@ -268,7 +268,7 @@ std::wstring Game::getFieldSizeValue()
 
 std::wstring Game::getWinRuleValue()
 {
-    return std::to_wstring(win_rule);
+    return std::to_wstring(win_sequence_count);
 }
 
 void Game::initField()
@@ -325,12 +325,12 @@ void Game::quit()
     is_running = false;
 }
 
-void Game::fieldRender()
+void Game::renderField()
 {
-    for (int x = 0; x < field_size; x++)
+    for (int y = 0; y < field_size; y++)
     {
-        int start_position = field_position.x + field_position.y * screen_width * (x + 1);
-        for (int y = 0; y < field_size; y++)
+        int start_position = field_offset + (y + 1) * screen_width;
+        for (int x = 0; x < field_size; x++)
         {
             wchar_t field_value;
             switch (field[x + y * field_size])
@@ -345,45 +345,45 @@ void Game::fieldRender()
                 field_value = L'O';
                 break;
             default:
-                field_value = L'E';;
+                field_value = L'E';
             }
 
             if (is_game_started && (turn == PLAYER || turn == PLAYER_2) && game_cursor_position.x == x && game_cursor_position.y == y)
             {
-                wsprintf(&screen_buffer[start_position + y * 3], L"[%lc]", field_value);
+                wsprintf(&screen_buffer[start_position + x * 3], L"[%lc]", field_value);
             }
             else
             {
-                wsprintf(&screen_buffer[start_position + y * 3], L"|%lc|", field_value);
+                wsprintf(&screen_buffer[start_position + x * 3], L"|%lc|", field_value);
             }
         }
     }
 }
 
-void Game::menuRender()
+void Game::renderMenu()
 {
     int i = 1;
     for (auto element : menu)
     {
         if (menu_cursor_position == i - 1)
         {
-            wsprintf(&screen_buffer[menu_position.x - 1 + menu_position.y * screen_width * i], L">");
+            wsprintf(&screen_buffer[menu_offset - 1 + screen_width * i], L">");
         }
 
         auto select = dynamic_cast<Select*>(element);
 
         if (select)
         {
-           wsprintf(&screen_buffer[menu_position.x + menu_position.y * screen_width * i++], L"%ws: %ws", select->label.c_str(), (this->*select->action_value)().c_str());
+            wsprintf(&screen_buffer[menu_offset + screen_width * i++], L"%ws: %ws", select->label.c_str(), (this->*select->action_value)().c_str());
         }
         else
         {
-            wsprintf(&screen_buffer[menu_position.x + menu_position.y * screen_width * i++], L"%ws", element->label.c_str());
+            wsprintf(&screen_buffer[menu_offset + screen_width * i++], L"%ws", element->label.c_str());
         }
     }
 }
 
-void Game::gameInfoRender()
+void Game::renderGameInfo()
 {
     std::wstring who_turn;
 
@@ -403,16 +403,16 @@ void Game::gameInfoRender()
         break;
     }
 
-    wsprintf(&screen_buffer[game_info_position.x + game_info_position.y * screen_width], L"Turn: %ws (%lc)", who_turn.c_str(), getCurrentTurnMarker() == X ? L'X' : L'O');
+    wsprintf(&screen_buffer[game_info_offset + screen_width], L"Turn: %ws (%lc)", who_turn.c_str(), getCurrentTurnMarker() == X ? L'X' : L'O');
 
     if (is_win)
     {
-        wsprintf(&screen_buffer[game_info_position.x + game_info_position.y * screen_width * 3], L"Wins: %lc", wins == X ? L'X' : L'O');
+        wsprintf(&screen_buffer[game_info_offset + screen_width * 3], L"Wins: %lc", wins == X ? L'X' : L'O');
     }
 
     if (is_draw)
     {
-        wsprintf(&screen_buffer[game_info_position.x + game_info_position.y * screen_width * 3], L"Draw");
+        wsprintf(&screen_buffer[game_info_offset + screen_width * 3], L"Draw");
     }
 }
 
@@ -421,153 +421,112 @@ void Game::update()
     clear();
     if (is_menu)
     {
-        menuRender();
+        renderMenu();
     }
     else
     {
-        gameInfoRender();
+        renderGameInfo();
     }
 
-    fieldRender();
+    renderField();
     refresh();
 }
 
-int Game::checkCrossLeft()
+bool Game::checkCrossLeft()
 {
     int sequence = 0;
-    if (last_turn.x + last_turn.y >= field_size)
+    int cursor = last_turn.x;
+    int offset = 0;
+    while (cursor < field_size &&
+        last_turn.y + offset < field_size &&
+        field[cursor + (last_turn.y + offset++) * field_size] == getCurrentTurnMarker())
     {
-        int src_y = last_turn.x + last_turn.y - (field_size - 1);
-        int tmp_x = field_size - 1;
-        int tmp_y = src_y;
-        for (int i = 0; i < field_size - src_y; ++i)
-        {
-            if (field[tmp_x-- + tmp_y++ * field_size] == getCurrentTurnMarker())
-            {
-                if(++sequence == win_rule)
-                {
-                    return 1;
-                }
-            }
-            else
-            {
-                sequence = 0;
-            }
-        }
-    }
-    else
-    {
-        int src_x = last_turn.y + last_turn.x;
-        int tmp_x = src_x;
-        int tmp_y = 0;
-        for (int i = 0; i < last_turn.y + last_turn.x + 1; ++i)
-        {
-            if (field[tmp_x-- + tmp_y++ * field_size] == getCurrentTurnMarker())
-            {
-                if(++sequence == win_rule)
-                {
-                    return 1;
-                }
-            }
-            else
-            {
-                sequence = 0;
-            }
-        }
+        sequence++;
+        cursor++;
     }
 
-    return -1;
+    offset = 1;
+    cursor = last_turn.x - 1;
+    while (cursor >= 0 &&
+        last_turn.y - offset >= 0 &&
+        field[cursor + (last_turn.y - offset++) * field_size] == getCurrentTurnMarker())
+    {
+        sequence++;
+        cursor--;
+    }
+
+    return sequence >= win_sequence_count;
 }
 
-int Game::checkCrossRight()
+bool Game::checkCrossRight()
 {
     int sequence = 0;
-    if (last_turn.x >= last_turn.y)
+    int cursor = last_turn.y;
+    int offset = 0;
+    while (cursor < field_size &&
+        last_turn.x - offset >= 0 &&
+        field[last_turn.x - offset++ + cursor * field_size] == getCurrentTurnMarker())
     {
-        int src_x = last_turn.x - last_turn.y;
-        for (int i = 0; i < field_size - src_x; ++i)
-        {
-            if (field[i + src_x + i * field_size] == getCurrentTurnMarker())
-            {
-                if(++sequence == win_rule)
-                {
-                    return 1;
-                }
-            }
-            else
-            {
-                sequence = 0;
-            }
-        }
-    }
-    else
-    {
-        int src_x = last_turn.y - last_turn.x;
-        for (int i = 0; i < field_size - src_x; ++i)
-        {
-            if (field[i + (i + src_x) * field_size] == getCurrentTurnMarker())
-            {
-                if(++sequence == win_rule)
-                {
-                    return 1;
-                }
-            }
-            else
-            {
-                sequence = 0;
-            }
-        }
+        sequence++;
+        cursor++;
     }
 
-    return -1;
+    offset = 1;
+    cursor = last_turn.y - 1;
+    while (cursor >= 0 &&
+        last_turn.x + offset < field_size &&
+        field[last_turn.x + offset++ + cursor * field_size] == getCurrentTurnMarker())
+    {
+        sequence++;
+        cursor--;
+    }
+
+    return sequence >= win_sequence_count;
 }
 
-int Game::checkHorizontal()
+bool Game::checkHorizontal()
 {
     int sequence = 0;
-    for (int x = 0; x < field_size; ++x)
+    int cursor = last_turn.x;
+    while (cursor < field_size && field[cursor + last_turn.y * field_size] == getCurrentTurnMarker())
     {
-        if (field[x + last_turn.y * field_size] == getCurrentTurnMarker())
-        {
-            if(++sequence == win_rule)
-            {
-                return 1;
-            }
-        }
-        else
-        {
-            sequence = 0;
-        }
+        sequence++;
+        cursor++;
     }
 
+    cursor = last_turn.x - 1;
+    while (cursor >= 0 && field[cursor + last_turn.y * field_size] == getCurrentTurnMarker())
+    {
+        sequence++;
+        cursor--;
+    }
 
-    return 0;
+    return sequence >= win_sequence_count;
 }
 
-int Game::checkVertical()
+bool Game::checkVertical()
 {
     int sequence = 0;
-    for (int y = 0; y < field_size; ++y)
+    int cursor = last_turn.y;
+    while (cursor < field_size && field[last_turn.x + cursor * field_size] == getCurrentTurnMarker())
     {
-        if (field[last_turn.x + y * field_size] == getCurrentTurnMarker())
-        {
-            if(++sequence == win_rule)
-            {
-                return 1;
-            }
-        }
-        else
-        {
-            sequence = 0;
-        }
+        sequence++;
+        cursor++;
     }
 
-    return 0;
+    cursor = last_turn.y - 1;
+    while (cursor >= 0 && field[last_turn.x + cursor * field_size] == getCurrentTurnMarker())
+    {
+        sequence++;
+        cursor--;
+    }
+
+    return sequence >= win_sequence_count;
 }
 
 void Game::checkGameState()
 {
-    if (checkCrossLeft() > 0 || checkCrossRight() > 0 || checkHorizontal() > 0 || checkVertical() > 0)
+    if (checkCrossLeft() || checkCrossRight() || checkHorizontal() || checkVertical())
     {
         wins = getCurrentTurnMarker();
         is_win = true;

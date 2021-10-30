@@ -4,21 +4,19 @@
 
 Console::Console()
 {
-
+    this->screen_buffer = new wchar_t[screen_width * screen_height];
     this->output = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    COORD coord = { static_cast<SHORT>(screen_width), static_cast<SHORT>(screen_height) };
+    SetConsoleScreenBufferSize(output, coord);
+    SMALL_RECT rect = {0,0, coord.Y - 1, coord.X - 1};
+    SetConsoleWindowInfo(output, TRUE, &rect);
 
     CONSOLE_CURSOR_INFO info;
     GetConsoleCursorInfo(output, &info);
     info.bVisible = false;
     SetConsoleCursorInfo(output, &info);
 
-    _COORD coord = {screen_width, screen_height};
-    SetConsoleScreenBufferSize(output, coord);
-
-    _SMALL_RECT rect = {0, 0, screen_width - 1, screen_height - 1};
-    SetConsoleWindowInfo(output, TRUE, &rect);
-
-    this->screen_buffer = new wchar_t[screen_width * screen_height];
     clear();
 }
 
@@ -49,6 +47,8 @@ void Console::clear()
 
 void Console::refresh()
 {
+    DWORD bytes_written = 0;
+
     for (short y = 0; y < screen_height; ++y)
     {
         WriteConsoleOutputCharacterW(output, &screen_buffer[screen_width * y], screen_width, { 0, y }, &bytes_written);

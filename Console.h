@@ -4,7 +4,6 @@
 class Console
 {
     HANDLE output;
-    DWORD bytes_written = 0;
 
 protected:
     const short screen_width = 120;
