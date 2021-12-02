@@ -21,7 +21,7 @@ struct Position
     int y;
 };
 
-enum Turn
+enum class Turn
 {
     PLAYER = 0,
     AI = 1,
@@ -29,7 +29,7 @@ enum Turn
     PLAYER_2 = 3
 };
 
-enum Mark
+enum class Mark
 {
     EMPTY = 0,
     X = 1,
@@ -55,17 +55,17 @@ class Game final : public Console
     int field_offset = 21;
     int game_info_offset = 2;
 
-    Position last_turn = { 0, 0};
+    Position last_turn = {0, 0};
 
     int menu_cursor_position = 0;
     Position game_cursor_position = {0, 0};
 
-    Mark wins = EMPTY;
-    Turn turn = PLAYER;
+    Mark wins = Mark::EMPTY;
+    Turn turn = Turn::PLAYER;
     std::vector<int> possible_turns;
-    short* field;
-    Turn first_turn = PLAYER;
-    Mark first_marker = X;
+    Mark* field;
+    Turn first_turn = Turn::PLAYER;
+    Mark first_marker = Mark::X;
 
     Game();
     ~Game() override;
@@ -112,6 +112,7 @@ public:
     void renderField();
     void renderMenu();
     void renderGameInfo();
+    void renderHint();
 
     void update();
 

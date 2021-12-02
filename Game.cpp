@@ -118,7 +118,7 @@ void Game::applyMenuOption()
 
 void Game::moveFieldCursorUp()
 {
-    if (is_game_started && (turn == PLAYER || turn == PLAYER_2))
+    if (is_game_started && (turn == Turn::PLAYER || turn == Turn::PLAYER_2))
     {
         game_cursor_position.y = (field_size + (game_cursor_position.y - 1) % field_size) % field_size;
     }
@@ -126,7 +126,7 @@ void Game::moveFieldCursorUp()
 
 void Game::moveFieldCursorDown()
 {
-    if (is_game_started && (turn == PLAYER || turn == PLAYER_2))
+    if (is_game_started && (turn == Turn::PLAYER || turn == Turn::PLAYER_2))
     {
         game_cursor_position.y = (field_size + (game_cursor_position.y + 1) % field_size) % field_size;
     }
@@ -134,7 +134,7 @@ void Game::moveFieldCursorDown()
 
 void Game::moveFieldCursorLeft()
 {
-    if (is_game_started && (turn == PLAYER || turn == PLAYER_2))
+    if (is_game_started && (turn == Turn::PLAYER || turn == Turn::PLAYER_2))
     {
         game_cursor_position.x = (field_size + (game_cursor_position.x - 1) % field_size) % field_size;
     }
@@ -142,7 +142,7 @@ void Game::moveFieldCursorLeft()
 
 void Game::moveFieldCursorRight()
 {
-    if (is_game_started && (turn == PLAYER || turn == PLAYER_2))
+    if (is_game_started && (turn == Turn::PLAYER || turn == Turn::PLAYER_2))
     {
         game_cursor_position.x = (field_size + (game_cursor_position.x + 1) % field_size) % field_size;
     }
@@ -152,21 +152,21 @@ void Game::turnPlayer()
 {
     int turn_position = game_cursor_position.x + game_cursor_position.y * field_size;
 
-    if (is_game_started && (turn == PLAYER || turn == PLAYER_2))
+    if (is_game_started && (turn == Turn::PLAYER || turn == Turn::PLAYER_2))
     {
-        if (field[turn_position] == EMPTY)
+        if (field[turn_position] == Mark::EMPTY)
         {
             last_turn = game_cursor_position;
             possible_turns.erase(std::find(possible_turns.begin(), possible_turns.end(), turn_position));
             field[turn_position] = getCurrentTurnMarker();
             checkGameState();
-            if (turn == PLAYER)
+            if (turn == Turn::PLAYER)
             {
-                turn = game_type == 0 ? PLAYER_2 : AI;
+                turn = game_type == 0 ? Turn::PLAYER_2 : Turn::AI;
             }
             else
             {
-                turn = PLAYER;
+                turn = Turn::PLAYER;
             }
         }
     }
@@ -174,20 +174,20 @@ void Game::turnPlayer()
 
 void Game::turnAI()
 {
-    if (is_game_started && (turn == AI || turn == AI_2))
+    if (is_game_started && (turn == Turn::AI || turn == Turn::AI_2))
     {
         int possible_turn = popPossibleTurn(rand() % possible_turns.size());
         last_turn.x = possible_turn % field_size;
         last_turn.y = (possible_turn - possible_turn % field_size) / field_size;
         field[possible_turn] = getCurrentTurnMarker();
         checkGameState();
-        if (turn == AI)
+        if (turn == Turn::AI)
         {
-            turn = game_type == 1 ? PLAYER : AI_2;
+            turn = game_type == 1 ? Turn::PLAYER : Turn::AI_2;
         }
         else
         {
-            turn = AI;
+            turn = Turn::AI;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -198,10 +198,10 @@ Mark Game::getCurrentTurnMarker()
 {
     if (turn == first_turn)
     {
-        return first_marker == X ? X : O;
+        return first_marker == Mark::X ? Mark::X : Mark::O;
     }
 
-    return first_marker == X ? O : X;
+    return first_marker == Mark::X ? Mark::O : Mark::X;
 }
 
 int Game::popPossibleTurn(int position)
@@ -279,10 +279,10 @@ void Game::initField()
     }
 
     possible_turns.clear();
-    field = new short[field_size * field_size];
+    field = new Mark[field_size * field_size];
     for (int i = 0; i < field_size * field_size; i++)
     {
-        field[i] = 0;
+        field[i] = Mark::EMPTY;
         possible_turns.push_back(i);
     }
 }
@@ -292,19 +292,19 @@ void Game::start()
     switch (game_type)
     {
     case 0:
-        first_turn = turn = rand() % 2 ? PLAYER : PLAYER_2;
+        first_turn = turn = rand() % 2 ? Turn::PLAYER : Turn::PLAYER_2;
         break;
     case 1:
-        first_turn = turn = rand() % 2 ? PLAYER : AI;
+        first_turn = turn = rand() % 2 ? Turn::PLAYER : Turn::AI;
         break;
     case 2:
-        first_turn = turn = rand() % 2 ? AI : AI_2;
+        first_turn = turn = rand() % 2 ? Turn::AI : Turn::AI_2;
         break;
     default:
-        first_turn = PLAYER;
+        first_turn = Turn::PLAYER;
     }
 
-    first_marker = rand() % 2 ? X : O;
+    first_marker = rand() % 2 ? Mark::X : Mark::O;
     is_menu = false;
     is_game_started = true;
 }
@@ -317,7 +317,7 @@ void Game::breakGame()
     is_menu = true;
     is_game_started = false;
     is_win = false;
-    first_turn = PLAYER;
+    first_turn = Turn::PLAYER;
 }
 
 void Game::quit()
@@ -335,20 +335,20 @@ void Game::renderField()
             wchar_t field_value;
             switch (field[x + y * field_size])
             {
-            case EMPTY:
+            case Mark::EMPTY:
                 field_value = L' ';
                 break;
-            case X:
+            case Mark::X:
                 field_value = L'X';
                 break;
-            case O:
+            case Mark::O:
                 field_value = L'O';
                 break;
             default:
                 field_value = L'E';
             }
 
-            if (is_game_started && (turn == PLAYER || turn == PLAYER_2) && game_cursor_position.x == x && game_cursor_position.y == y)
+            if (is_game_started && (turn == Turn::PLAYER || turn == Turn::PLAYER_2) && game_cursor_position.x == x && game_cursor_position.y == y)
             {
                 wsprintf(&screen_buffer[start_position + x * 3], L"[%lc]", field_value);
             }
@@ -363,22 +363,24 @@ void Game::renderField()
 void Game::renderMenu()
 {
     int i = 1;
-    for (auto element : menu)
+    for (MenuElement* element : menu)
     {
-        if (menu_cursor_position == i - 1)
-        {
-            wsprintf(&screen_buffer[menu_offset - 1 + screen_width * i], L">");
-        }
+        if (element) {
+            if (menu_cursor_position == i - 1)
+            {
+                wsprintf(&screen_buffer[menu_offset - 1 + screen_width * i], L">");
+            }
 
-        auto select = dynamic_cast<Select*>(element);
+            auto select = dynamic_cast<Select*>(element);
 
-        if (select)
-        {
-            wsprintf(&screen_buffer[menu_offset + screen_width * i++], L"%ws: %ws", select->label.c_str(), (this->*select->action_value)().c_str());
-        }
-        else
-        {
-            wsprintf(&screen_buffer[menu_offset + screen_width * i++], L"%ws", element->label.c_str());
+            if (select)
+            {
+                wsprintf(&screen_buffer[menu_offset + screen_width * i++], L"%ws: < %ws >", select->label.c_str(), (this->*select->action_value)().c_str());
+            }
+            else
+            {
+                wsprintf(&screen_buffer[menu_offset + screen_width * i++], L"%ws", element->label.c_str());
+            }
         }
     }
 }
@@ -389,25 +391,25 @@ void Game::renderGameInfo()
 
     switch (turn)
     {
-    case PLAYER:
+    case Turn::PLAYER:
         who_turn = L"Player";
         break;
-    case AI:
+    case Turn::AI:
         who_turn = L"AI";
         break;
-    case AI_2:
+    case Turn::AI_2:
         who_turn = L"AI 2";
         break;
-    case PLAYER_2:
+    case Turn::PLAYER_2:
         who_turn = L"Player 2";
         break;
     }
 
-    wsprintf(&screen_buffer[game_info_offset + screen_width], L"Turn: %ws (%lc)", who_turn.c_str(), getCurrentTurnMarker() == X ? L'X' : L'O');
+    wsprintf(&screen_buffer[game_info_offset + screen_width], L"Turn: %ws (%lc)", who_turn.c_str(), getCurrentTurnMarker() == Mark::X ? L'X' : L'O');
 
     if (is_win)
     {
-        wsprintf(&screen_buffer[game_info_offset + screen_width * 3], L"Wins: %lc", wins == X ? L'X' : L'O');
+        wsprintf(&screen_buffer[game_info_offset + screen_width * 3], L"Wins: %lc", wins == Mark::X ? L'X' : L'O');
     }
 
     if (is_draw)
@@ -416,19 +418,31 @@ void Game::renderGameInfo()
     }
 }
 
+void Game::renderHint()
+{
+    wsprintf(&screen_buffer[18 * screen_width + 1], L"<Arrows> - Cursor control; <Space> - Confirm; <Esc> - To Menu;");
+    wsprintf(&screen_buffer[19 * screen_width + 1], L"Configure game settings and select \"New game\" to start");
+}
+
 void Game::update()
 {
     clear();
-    if (is_menu)
+
+    if (is_running)
     {
-        renderMenu();
-    }
-    else
-    {
-        renderGameInfo();
+        if (is_menu)
+        {
+            renderMenu();
+        }
+        else
+        {
+            renderGameInfo();
+        }
+
+        renderField();
+        renderHint();
     }
 
-    renderField();
     refresh();
 }
 
@@ -546,7 +560,7 @@ void Game::init()
 
     while(game.is_running)
     {
-        if (game.game_type != 0 && game.turn == AI || game.turn == AI_2)
+        if (game.game_type != 0 && game.turn == Turn::AI || game.turn == Turn::AI_2)
         {
             game.turnAI();
         }
